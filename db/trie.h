@@ -24,6 +24,36 @@ private:
             collect_words(kv.second.get(), current + kv.first, result);
     }
 
+    bool wildcard_match(const string& str, const string& pattern) const {
+        size_t star = pattern.find('*');
+
+        if (star != string::npos) {
+            if (star != pattern.size() - 1 || star == 0) {
+                throw runtime_error("'*' can appear only at the end, and only once.");
+            }
+        }
+
+        if (star != string::npos) {
+            string pref = pattern.substr(0, star);
+            if (str.size() < pref.size()) return false;
+
+            for (size_t i = 0; i < pref.size(); i++) {
+                if (pref[i] != '?' && pref[i] != str[i])
+                    return false;
+            }
+            return true;
+        }
+
+        if (str.size() != pattern.size()) return false;
+
+        for (size_t i = 0; i < str.size(); i++) {
+            if (pattern[i] != '?' && pattern[i] != str[i])
+                return false;
+        }
+
+        return true;
+    }
+
 public:
 
     Trie() {
@@ -80,9 +110,31 @@ public:
         }
     }
 
-    vector<string> search() const {
+    vector<string> search_all() const {
+        vector<string> out;
+        collect_words(root.get(), "", out);
+        return out;
+    }
+
+    vector<string> search_between(const string& from, const string& to) const {
+        vector<string> all = search_all();
         vector<string> result;
-        collect_words(root.get(), "", result);
+
+        for (auto& w : all) {
+            if (w >= from && w <= to)
+                result.push_back(w);
+        }
+        return result;
+    }
+
+    vector<string> search_match(const string& pattern) const {
+        vector<string> all = search_all();
+        vector<string> result;
+
+        for (auto& w : all)
+            if (wildcard_match(w, pattern))
+                result.push_back(w);
+
         return result;
     }
 };

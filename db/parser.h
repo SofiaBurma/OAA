@@ -60,7 +60,7 @@ public:
 
             else if (command_word == "PRINT_TREE") { results.push_back(print_tree(cleaned)); }
 
-            else { throw runtime_error("Unknown command. " + command_word); }
+            else { throw runtime_error("Unknown command: " + command_word); }
 
         }
 
@@ -108,17 +108,6 @@ private:
         throw runtime_error("The set_name or value is incorrect or missing");
     }
 
-    string search(const string& cmd) {
-        smatch match;
-        regex re(R"(^\s*SEARCH\s+([a-zA-Z][a-zA-Z0-9_]*)\s*;$)", regex::icase);
-
-        if (regex_search(cmd, match, re)) {
-            string set_name = match[1];
-            return "Searching in " + set_name;
-        }
-        throw runtime_error("The set_name is incorrect or missing");
-    }
-
     string print_tree(const string& cmd) {
         smatch match;
         regex re(R"(^\s*PRINT_TREE\s+([a-zA-Z][a-zA-Z0-9_]*)\s*;$)", regex::icase);
@@ -126,6 +115,48 @@ private:
         if (regex_search(cmd, match, re)) {
             string set_name = match[1];
             return "Printing tree for: " + set_name;
+        }
+        throw runtime_error("The set_name is incorrect or missing");
+    }
+
+    string search(const string& cmd) {
+        smatch match;
+        regex re_search(R"(^\s*SEARCH\s+([a-zA-Z][a-zA-Z0-9_]*)\s*(WHERE\s+(.+?))?\s*(ASC|DESC)?\s*;$)", regex::icase);
+        if (regex_search(cmd, match, re_search)) {
+            string set_name = match[1];
+            string query = match[3];          
+            string order = match[4];          
+
+            if (!order.empty()) {
+                transform(order.begin(), order.end(), order.begin(), ::toupper);
+            }
+            else {
+                order = "ASC";
+            }
+
+            if (!query.empty()) {
+                
+                smatch m_between;
+                regex re_between(R"(BETWEEN\s*\"([^\"]*)\"\s*,\s*\"([^\"]*)\")", regex::icase);
+                if (regex_search(query, m_between, re_between)) {
+                    string from = m_between[1];
+                    string to = m_between[2];
+                    return "Search_between " + set_name + " " + from + " " + to + " " + order;
+                }
+
+                smatch m_match;
+                regex re_match(R"(MATCH\s*\"([^\"]*)\")", regex::icase);
+                if (regex_search(query, m_match, re_match)) {
+                    string pattern = m_match[1];
+                    return "Search_match " + set_name + " " + pattern + " " + order;
+                }
+
+                throw runtime_error("The condition after WHERE is incorrect");
+            }
+            else {
+
+                return "Search " + set_name + " " + order;
+            }
         }
         throw runtime_error("The set_name is incorrect or missing");
     }
